@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLV GitHub Repo Browser</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-2: #111827;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-2: rgba(30, 41, 59, 0.9);
+      --line: rgba(148, 163, 184, 0.24);
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --accent-2: #38bdf8;
+      --good: #22c55e;
+      --warn: #f97316;
+      --bad: #ef4444;
+      --shadow: 0 18px 50px rgba(2, 6, 23, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 15%, rgba(245, 158, 11, 0.18), transparent 26%),
+        linear-gradient(160deg, #07111f 0%, #0f172a 45%, #111827 100%);
+      font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    .shell {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.82));
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: -20% -10% auto auto;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.26), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.34);
+      background: rgba(8, 47, 73, 0.4);
+      color: #bdeaff;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", serif;
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+
+    h1 {
+      margin-top: 16px;
+      font-size: clamp(2.2rem, 4vw, 4rem);
+      line-height: 1.02;
+    }
+
+    .hero p {
+      max-width: 78ch;
+      color: #cbd5e1;
+      margin: 14px 0 0;
+      font-size: 1.02rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat, .note-card, .panel, .repo-card, .guide-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px 18px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .note-card {
+      padding: 18px;
+      background: linear-gradient(160deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.86));
+    }
+
+    .note-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 10px;
+    }
+
+    .note-card ul, .guide-card ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #dbe7f7;
+    }
+
+    .note-card li + li, .guide-card li + li {
+      margin-top: 8px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      margin: 22px 0 18px;
+      align-items: center;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.84);
+      box-shadow: var(--shadow);
+    }
+
+    .search input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+    }
+
+    .search input::placeholder {
+      color: #7c8ca3;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.86);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .chip:hover, .chip.active {
+      transform: translateY(-1px);
+      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(8, 47, 73, 0.8);
+    }
+
+    .section {
+      margin-top: 28px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 72ch;
+    }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.8);
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+
+    .repo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .repo-card {
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .repo-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    }
+
+    .repo-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+      padding-right: 120px;
+    }
+
+    .repo-link {
+      color: #d8f3ff;
+      text-decoration: none;
+      word-break: break-word;
+    }
+
+    .repo-link:hover {
+      text-decoration: underline;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      border: 1px solid var(--line);
+      background: rgba(2, 6, 23, 0.42);
+      color: #dbe7f7;
+    }
+
+    .tag.good { border-color: rgba(34, 197, 94, 0.35); color: #b6f8ce; }
+    .tag.warn { border-color: rgba(249, 115, 22, 0.4); color: #ffd0b0; }
+    .tag.bad { border-color: rgba(239, 68, 68, 0.4); color: #ffb8b8; }
+    .tag.info { border-color: rgba(56, 189, 248, 0.35); color: #bbebff; }
+
+    .repo-card p {
+      margin: 8px 0;
+      color: #d5e2f2;
+    }
+
+    .repo-card .small {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .subtle {
+      color: var(--muted);
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .guide-card {
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    }
+
+    .guide-card h3 {
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+
+    .footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .pill {
+      color: #04111f;
+      background: linear-gradient(90deg, #f8e08a, #fbbf24);
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin-left: 10px;
+      font-size: 0.74rem;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid, .repo-grid, .guide-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        justify-content: flex-start;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 18px, 1220px);
+        padding-top: 14px;
+      }
+
+      .hero, .repo-card, .guide-card, .note-card, .stat {
+        border-radius: 18px;
+      }
+
+      .hero {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-card h3 {
+        padding-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">CLV Project Browser</div>
+      <h1>GitHub repo index for Customer Lifetime Value code</h1>
+      <p>
+        This page is a practical browsing layer for CLV-related GitHub repositories, organized so you can compare
+        simple syllabus-aligned implementations, reference-only projects, and advanced repos you should avoid for the
+        final 6th-sem ML submission.
+      </p>
+
+      <div class="hero-grid">
+        <div class="stat-grid">
+          <div class="stat">
+            <strong id="repoCount">0</strong>
+            <span>Total repo links collected</span>
+          </div>
+          <div class="stat">
+            <strong id="simpleCount">0</strong>
+            <span>Simple / recommended repos</span>
+          </div>
+          <div class="stat">
+            <strong id="referenceCount">0</strong>
+            <span>Reference-only repos</span>
+          </div>
+          <div class="stat">
+            <strong id="excludeCount">0</strong>
+            <span>Exclude / advanced repos</span>
+          </div>
+        </div>
+
+        <aside class="note-card">
+          <h3>Use this page for selection, not just collection</h3>
+          <ul>
+            <li>Open a repo and inspect the notebook or script flow before deciding.</li>
+            <li>Keep the final project centered on KNN, linear regression, or another simple method from your syllabus.</li>
+            <li>Mark the same repo as claimed once a teammate starts using it.</li>
+            <li>Prefer code you can explain line-by-line in the viva.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="toolbar" aria-label="Search and filters">
+      <label class="search" for="searchBox">
+        <span>Search</span>
+        <input id="searchBox" type="search" placeholder="Search by repo name, method, dataset, or note..." />
+      </label>
+      <div class="filters" id="filterButtons">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="recommended">Recommended</button>
+        <button class="chip" data-filter="reference">Reference</button>
+        <button class="chip" data-filter="related">Related</button>
+        <button class="chip" data-filter="exclude">Exclude</button>
+      </div>
+    </section>
+
+    <section class="section" id="recommendedSection">
+      <div class="section-head">
+        <div>
+          <h2>Recommended simple repos</h2>
+          <p>Start here if you want something close to a syllabus-friendly CLV implementation that you can adapt and explain.</p>
+        </div>
+        <div class="section-badge">Best fit for a 6th-sem ML project</div>
+      </div>
+      <div class="repo-grid" id="recommendedGrid"></div>
+    </section>
+
+    <section class="section" id="referenceSection">
+      <div class="section-head">
+        <div>
+          <h2>Reference-only repos</h2>
+          <p>These are useful for ideas, structure, or datasets, but they are not the first choice if you want a simple final model.</p>
+        </div>
+        <div class="section-badge">Use for comparison</div>
+      </div>
+      <div class="repo-grid" id="referenceGrid"></div>
+    </section>
+
+    <section class="section" id="relatedSection">
+      <div class="section-head">
+        <div>
+          <h2>Related but not direct CLV</h2>
+          <p>These can help you understand pipelines, feature engineering, or baseline ML patterns, but they are not the main CLV source.</p>
+        </div>
+        <div class="section-badge">Pipeline reference only</div>
+      </div>
+      <div class="repo-grid" id="relatedGrid"></div>
+    </section>
+
+    <section class="section" id="excludeSection">
+      <div class="section-head">
+        <div>
+          <h2>Avoid for the final build</h2>
+          <p>These lean too advanced, too probabilistic, or too far from your syllabus constraints for the core implementation.</p>
+        </div>
+        <div class="section-badge">Not primary targets</div>
+      </div>
+      <div class="repo-grid" id="excludeGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>What to look for in a GitHub repo</h2>
+          <p>This is the checklist to decide whether a repo is the right one for your project.</p>
+        </div>
+        <div class="section-badge">Selection guide</div>
+      </div>
+      <div class="guide-grid">
+        <article class="guide-card">
+          <h3>Good signs</h3>
+          <ul>
+            <li>It shows data import, cleaning, feature creation, training, and evaluation in a visible order.</li>
+            <li>The model is simple enough to explain in class, like KNN, linear regression, or a basic tree.</li>
+            <li>The README states the dataset, the objective, and what the model actually predicts.</li>
+            <li>You can run it or at least trace the notebook without hidden steps.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>How to know it fits</h3>
+          <ul>
+            <li>The code uses CLV or a closely related customer-value workflow.</li>
+            <li>The dataset is understandable and not locked behind missing files or unclear sources.</li>
+            <li>The evaluation metrics match a basic ML report, such as MAE, RMSE, accuracy, or confusion matrix.</li>
+            <li>The repo can be adapted into your own final report without overengineering.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Red flags</h3>
+          <ul>
+            <li>The repo depends on deep learning, stacked ensembles, or advanced probabilistic methods as the main story.</li>
+            <li>The notebook is only theory, with no usable pipeline or runnable code.</li>
+            <li>The repo is just a deployment shell without the model logic you need to study.</li>
+            <li>The same paper or repo is already claimed by another team member.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <p class="footer">
+      Tip: open one repo at a time, inspect its README and main notebook, then decide whether it belongs in your final short list.
+    </p>
+  </main>
+
+  <script>
+    const repos = [
+      {
+        title: "Predict_CLTV_with_linear_regression",
+        url: "https://github.com/aig3rim/Predict_CLTV_with_linear_regression",
+        group: "recommended",
+        status: "Recommended",
+        method: "Linear Regression",
+        dataset: "CLV / customer value dataset",
+        source: "Simple baseline repo with linear regression focus.",
+        note: "Good starting point if you want a clean, explainable model."
+      },
+      {
+        title: "Customer-Lifetime-Value-Prediction-in-python",
+        url: "https://github.com/Harshitvinayak/Customer-Lifetime-Value-Prediction-in-python",
+        group: "recommended",
+        status: "Recommended",
+        method: "RFM + Linear Regression",
+        dataset: "Customer purchase data",
+        source: "Python-based CLV prediction with evaluation and visuals.",
+        note: "Useful because the pipeline is likely easy to narrate in a report."
+      },
+      {
+        title: "Customer-Lifetime-Value-In-Financial-Services-Using-Regression-Model",
+        url: "https://github.com/starlight2312/Customer-Lifetime-Value-In-Financial-Services-Using-Regression-Model",
+        group: "recommended",
+        status: "Recommended",
+        method: "Multiple Linear Regression",
+        dataset: "Financial services CLV data",
+        source: "Regression-based CLV study in a practical business setting.",
+        note: "A solid reference if you want a business-style write-up."
+      },
+      {
+        title: "CLV_prediction",
+        url: "https://github.com/k-bosko/CLV_prediction",
+        group: "reference",
+        status: "Reference",
+        method: "Traditional CLV formulas + Python notebook",
+        dataset: "UCI Online Retail II",
+        source: "Straightforward CLV notebook with clear revenue-based formulas.",
+        note: "Useful for understanding feature flow, even if it is not pure KNN."
+      },
+      {
+        title: "Customer-Life-Time-Value-Prediction-Flask-Deployment--Heroku",
+        url: "https://github.com/DheerajKumar97/Customer-Life-Time-Value-Prediction-Flask-Deployment--Heroku",
+        group: "reference",
+        status: "Reference",
+        method: "Basic predictive ML + deployment",
+        dataset: "Four-wheeler insurance data",
+        source: "Implementation plus deployment project.",
+        note: "Good if you want a deployed app example, but not the simplest story."
+      },
+      {
+        title: "Customer-Lifetime-Value-Prediction-For-AutoInsurance-Company",
+        url: "https://github.com/adiag321/Customer-Lifetime-Value-Prediction-For-AutoInsurance-Company",
+        group: "reference",
+        status: "Reference",
+        method: "Automobile insurance CLV modeling",
+        dataset: "Auto insurance customer data",
+        source: "Applied CLV project for an insurance company.",
+        note: "Relevant for business framing and project structure."
+      },
+      {
+        title: "ML-Project---Customer-Lifetime-Value-Analysis",
+        url: "https://github.com/arca91d/ML-Project---Customer-Lifetime-Value-Analysis.",
+        group: "reference",
+        status: "Reference",
+        method: "Linear Regression + Decision Tree + Random Forest",
+        dataset: "Customer lifetime data",
+        source: "Mixes simple and advanced models.",
+        note: "Use only the simpler parts; avoid the ensemble-heavy framing."
+      },
+      {
+        title: "ML-Driven-CLV-Prediction",
+        url: "https://github.com/Yonas650/ML-Driven-CLV-Prediction",
+        group: "reference",
+        status: "Reference",
+        method: "Linear Regression through Neural Network stages",
+        dataset: "E-commerce data",
+        source: "CLV prediction project with multiple model ideas.",
+        note: "Reference only because the repo description suggests more complexity."
+      },
+      {
+        title: "customer-lifetime-prediction-using-python",
+        url: "https://github.com/mukulsinghal001/customer-lifetime-prediction-using-python",
+        group: "exclude",
+        status: "Exclude",
+        method: "Probabilistic BTYD models",
+        dataset: "UCI Online Retail II",
+        source: "Uses BG-NBD, Pareto/NBD, MBG-NBD, and Gamma-Gamma.",
+        note: "Strong research reference, but it is outside the simple-ML constraint."
+      },
+      {
+        title: "pymc-marketing",
+        url: "https://github.com/pymc-labs/pymc-marketing",
+        group: "exclude",
+        status: "Exclude",
+        method: "Bayesian marketing toolbox",
+        dataset: "Generic marketing / CLV workflows",
+        source: "Advanced marketing package with CLV capabilities.",
+        note: "Too advanced for a basic academic build.",
+      },
+      {
+        title: "tensorflow-lifetime-value",
+        url: "https://github.com/GoogleCloudPlatform/tensorflow-lifetime-value",
+        group: "exclude",
+        status: "Exclude",
+        method: "TensorFlow + AutoML / neural network",
+        dataset: "Cloud-based retail / marketing data",
+        source: "Cloud and neural-network based CLV solution.",
+        note: "Not suitable for a syllabus-first project."
+      },
+      {
+        title: "Cross-Selling-Project",
+        url: "https://github.com/Debabrata-009/Cross-Selling-Project",
+        group: "related",
+        status: "Related",
+        method: "Logistic Regression, Decision Tree, KNN",
+        dataset: "Insurance customer records",
+        source: "Not direct CLV, but useful for KNN and pipeline structure.",
+        note: "Good reference if you need a simple classification workflow."
+      },
+      {
+        title: "Predicting Customer Lifetime Value (CLV)",
+        url: "https://github.com/k-bosko/CLV_prediction/blob/master/CLV_prediction.ipynb",
+        group: "reference",
+        status: "Reference",
+        method: "Revenue-based CLV formulas",
+        dataset: "Online Retail II",
+        source: "Direct notebook link for the main analysis.",
+        note: "Open this notebook if you want the exact working flow."
+      }
+    ];
+
+    const state = {
+      filter: 'all',
+      search: ''
+    };
+
+    const grids = {
+      recommended: document.getElementById('recommendedGrid'),
+      reference: document.getElementById('referenceGrid'),
+      related: document.getElementById('relatedGrid'),
+      exclude: document.getElementById('excludeGrid')
+    };
+
+    const counters = {
+      repoCount: document.getElementById('repoCount'),
+      simpleCount: document.getElementById('simpleCount'),
+      referenceCount: document.getElementById('referenceCount'),
+      excludeCount: document.getElementById('excludeCount')
+    };
+
+    function badgeClass(status) {
+      const normalized = status.toLowerCase();
+      if (normalized.includes('recommended')) return 'good';
+      if (normalized.includes('reference')) return 'warn';
+      if (normalized.includes('exclude')) return 'bad';
+      return 'info';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function matchesSearch(repo, search) {
+      if (!search) return true;
+      const haystack = [repo.title, repo.method, repo.dataset, repo.source, repo.note, repo.status, repo.group]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(search.toLowerCase());
+    }
+
+    function renderCard(repo) {
+      return `
+        <article class="repo-card" data-group="${repo.group}">
+          <div class="meta-row">
+            <span class="tag ${badgeClass(repo.status)}">${escapeHtml(repo.status)}</span>
+            <span class="tag info">${escapeHtml(repo.method)}</span>
+          </div>
+          <h3><a class="repo-link" href="${escapeHtml(repo.url)}" target="_blank" rel="noreferrer">${escapeHtml(repo.title)}</a></h3>
+          <p><strong>Dataset:</strong> ${escapeHtml(repo.dataset)}</p>
+          <p class="small">${escapeHtml(repo.source)}</p>
+          <p>${escapeHtml(repo.note)}</p>
+        </article>
+      `;
+    }
+
+    function updateCounters(filtered) {
+      counters.repoCount.textContent = filtered.length;
+      counters.simpleCount.textContent = filtered.filter((repo) => repo.group === 'recommended').length;
+      counters.referenceCount.textContent = filtered.filter((repo) => repo.group === 'reference').length;
+      counters.excludeCount.textContent = filtered.filter((repo) => repo.group === 'exclude').length;
+    }
+
+    function render() {
+      const filtered = repos.filter((repo) => {
+        const groupAllowed = state.filter === 'all' || repo.group === state.filter;
+        return groupAllowed && matchesSearch(repo, state.search);
+      });
+
+      const grouped = {
+        recommended: filtered.filter((repo) => repo.group === 'recommended'),
+        reference: filtered.filter((repo) => repo.group === 'reference'),
+        related: filtered.filter((repo) => repo.group === 'related'),
+        exclude: filtered.filter((repo) => repo.group === 'exclude')
+      };
+
+      Object.entries(grids).forEach(([group, grid]) => {
+        const items = grouped[group];
+        grid.innerHTML = items.length ? items.map(renderCard).join('') : '<div class="repo-card"><p class="subtle">No matching repos in this section for the current filter.</p></div>';
+      });
+
+      updateCounters(filtered);
+    }
+
+    document.getElementById('searchBox').addEventListener('input', (event) => {
+      state.search = event.target.value.trim();
+      render();
+    });
+
+    document.getElementById('filterButtons').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-filter]');
+      if (!button) return;
+      state.filter = button.dataset.filter;
+      document.querySelectorAll('.chip').forEach((chip) => chip.classList.toggle('active', chip === button));
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
